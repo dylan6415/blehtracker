@@ -28,6 +28,7 @@ svg{width:100%;height:auto;display:block;border-radius:10px;background:var(--sea
 button.b{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 22px;cursor:pointer;background:var(--acc);color:#fff}
 button.b.s{background:var(--line);color:var(--ink)}
 .live #go,.live #minl,.live #chips,.live #pnote{display:none}#livebox{display:none;margin-top:10px}.live #livebox{display:block}.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.ap{position:relative}.ap input{width:100%}.dd{position:absolute;left:0;right:0;top:100%;z-index:5;background:var(--card);border:1px solid var(--line);border-radius:8px;max-height:250px;overflow:auto;display:none;box-shadow:0 6px 18px #0003}.dd div{padding:8px 10px;font-size:13px;color:var(--ink);cursor:pointer}.dd div:hover{background:var(--bg)}
 .stats{display:flex;justify-content:space-around;font-size:13px;color:var(--mute);text-align:center}
 .stats b{display:block;color:var(--ink);font-size:18px}
 #msg{text-align:center;font-weight:600;color:var(--acc2);min-height:22px;margin-top:8px}
@@ -38,11 +39,12 @@ button.b.s{background:var(--line);color:var(--ink)}
 <div class="card">
  <div class="chips" style="margin:0 0 10px"><button class="chip on" id="mPre">Preset flight</button><button class="chip" id="mLive">Live flight</button></div>
  <div class="row">
-  <label>From<select id="from"></select></label>
-  <label>To<select id="to"></select></label>
+  <label>From<div class="ap"><input id="from" autocomplete="off" placeholder="City, name or code"><div class="dd"></div></div></label>
+  <label>To<div class="ap"><input id="to" autocomplete="off" placeholder="City, name or code"><div class="dd"></div></div></label>
   <label id="minl" style="max-width:130px">Flight time (min)<input id="mins" type="number" min="5" max="1500"></label>
  </div>
  <div class="chips" id="chips"></div>
+ <p id="aps" class="sub" style="margin:8px 0 0;font-size:12px"></p>
  <div id="livebox"><div class="row"><label>Callsign or flight no.<input id="cs" placeholder="UAL123 or UA123"></label><button class="b" id="find" style="padding:8px 18px">Find flight</button></div><p class="sub" id="lst" style="margin:8px 0 0;font-size:13px">Pick your origin and destination above, enter the flight, and the timer counts down to its real landing.</p></div>
  <p id="pnote" class="sub" style="margin:10px 0 0;font-size:12px">Popular routes use typical scheduled nonstop times; other pairings are estimated from distance. You can edit the minutes.</p>
 </div>
@@ -65,7 +67,7 @@ button.b.s{background:var(--line);color:var(--ink)}
 </div>
 
 <div class="card stats"><div><b id="sf">0</b>flights landed</div><div><b id="sh">0h 0m</b>total focus time</div></div>
-<p class="sub" style="text-align:center;font-size:12px">Live positions: OpenSky Network (community ADS-B, non-commercial use). Coverage over oceans can have gaps.</p></main>
+<p class="sub" style="text-align:center;font-size:12px">Airports: OurAirports (public domain). Live positions: OpenSky Network (community ADS-B, non-commercial use). Coverage over oceans can have gaps.</p></main>
 <script>
 const A={IAH:["Houston",29.98,-95.34],JFK:["New York",40.64,-73.78],LAX:["Los Angeles",33.94,-118.41],SFO:["San Francisco",37.62,-122.38],ORD:["Chicago",41.98,-87.9],ATL:["Atlanta",33.64,-84.43],MIA:["Miami",25.8,-80.29],SEA:["Seattle",47.45,-122.31],YYZ:["Toronto",43.68,-79.63],MEX:["Mexico City",19.44,-99.07],BOG:["Bogotá",4.7,-74.15],GRU:["São Paulo",-23.43,-46.47],EZE:["Buenos Aires",-34.82,-58.54],LHR:["London",51.47,-0.45],CDG:["Paris",49.01,2.55],AMS:["Amsterdam",52.31,4.76],FRA:["Frankfurt",50.03,8.57],MAD:["Madrid",40.49,-3.57],IST:["Istanbul",41.28,28.74],CAI:["Cairo",30.12,31.41],NBO:["Nairobi",-1.32,36.93],JNB:["Johannesburg",-26.14,28.24],CPT:["Cape Town",-33.97,18.6],DXB:["Dubai",25.25,55.36],DOH:["Doha",25.27,51.61],DEL:["Delhi",28.56,77.1],BOM:["Mumbai",19.09,72.87],SIN:["Singapore",1.36,103.99],HKG:["Hong Kong",22.31,113.91],ICN:["Seoul",37.46,126.44],HND:["Tokyo",35.55,139.78],SYD:["Sydney",-33.94,151.18],AKL:["Auckland",-37.01,174.79]};
 const P=[["IAH","LHR",570],["JFK","LHR",420],["SFO","SIN",990],["LAX","HND",700],["JFK","DXB",720],["DOH","AKL",1020],["IAH","ATL",120],["ATL","MIA",115],["AMS","JFK",500],["SIN","LHR",840],["DXB","SYD",860],["ORD","FRA",510],["JFK","LAX",360]];
@@ -81,8 +83,16 @@ const LAND=[[[-168,66],[-156,71],[-125,70],[-95,72],[-80,70],[-62,60],[-55,50],[
 [[95,5],[105,-6],[115,-8],[110,-2],[118,1],[117,7],[109,1]]];
 const $=id=>document.getElementById(id),NS="http://www.w3.org/2000/svg";
 const X=l=>(l+180).toFixed(1),Y=l=>(90-l).toFixed(1),R=Math.PI/180;
-const from=$("from"),to=$("to"),mins=$("mins"),map=$("map");
-for(const k in A){for(const s of[from,to]){const o=document.createElement("option");o.value=k;o.textContent=k+" · "+A[k][0];s.append(o)}}
+const mins=$("mins"),map=$("map");let ALL;
+for(const k in A){const a=A[k];a[3]=a[0];a[4]="";a[5]=(k+" "+a[0]).toLowerCase()}ALL=Object.keys(A);
+function mkAp(id){const i=$(id),dd=i.nextElementSibling,o={onchange:null};let code="";
+ const lab=c=>A[c]?c+" · "+A[c][0]:c;
+ Object.defineProperty(o,"value",{get:()=>code,set:v=>{code=v;i.value=lab(v)}});
+ const show=q=>{q=q.trim().toLowerCase();let r=[];if(q){const e=[],m=[];for(const k of ALL){if(k.toLowerCase().startsWith(q))e.push(k);else if(A[k][5].includes(q))m.push(k);if(e.length+m.length>600)break}r=e.concat(m).slice(0,8)}
+  dd.replaceChildren(...r.map(k=>{const x=document.createElement("div");x.textContent=k+" · "+A[k][0]+" · "+A[k][3];x.onmousedown=ev=>{ev.preventDefault();o.value=k;dd.style.display="none";i.blur();o.onchange&&o.onchange()};return x}));dd.style.display=r.length?"block":"none"};
+ i.oninput=()=>show(i.value);i.onfocus=()=>i.select();i.onblur=()=>{dd.style.display="none";i.value=lab(code)};return o}
+const from=mkAp("from"),to=mkAp("to");
+
 const dist=(a,b)=>{const[,p,l]=A[a],[,q,m]=A[b],d=Math.acos(Math.min(1,Math.sin(p*R)*Math.sin(q*R)+Math.cos(p*R)*Math.cos(q*R)*Math.cos((m-l)*R)));return d*6371};
 const estimate=(a,b)=>Math.round(dist(a,b)/(830/60)+30);
 function gc(a,b,n){return gcp(A[a][1],A[a][2],A[b][1],A[b][2],n)}
@@ -170,5 +180,15 @@ $("find").onclick=async()=>{const q=norm($("cs").value);if(!q)return;clearInterv
  catch(e){$("lst").textContent=e.message==="rate"?"Daily OpenSky limit reached. Try again tomorrow or use a preset flight.":"Couldn’t reach OpenSky ("+e.message+"). If this keeps happening, the browser may be blocking the request."}};
 function setMode(l){if(!l&&live)stopLive();document.body.classList.toggle("live",l);$("mLive").classList.toggle("on",l);$("mPre").classList.toggle("on",!l);$("reset").textContent=l?"Stop tracking":"Reset"}
 $("mPre").onclick=()=>setMode(false);$("mLive").onclick=()=>setMode(true);
-from.value="IAH";to.value="LHR";stats();setRoute();
+function csvLine(l){const o=[];let f="",q=false;for(let i=0;i<l.length;i++){const c=l[i];if(q){if(c==='"'){if(l[i+1]==='"'){f+='"';i++}else q=false}else f+=c}else if(c==='"')q=true;else if(c===","){o.push(f);f=""}else if(c!=="\r")f+=c}o.push(f);return o}
+function ingest(l){for(const[c,city,la,lo,nm,cc]of l)A[c]=[city||nm,+la,+lo,nm,cc,(c+" "+city+" "+nm+" "+cc).toLowerCase()];ALL=Object.keys(A);from.value=from.value;to.value=to.value;$("aps").textContent="Airports: OurAirports, "+ALL.length.toLocaleString()+" with airline codes. Type a city, airport name or code."}
+async function loadAp(){let c=null;try{c=JSON.parse(localStorage.getItem("ffap")||"null")}catch(e){}
+ if(c&&Date.now()-c.t<2592e6){ingest(c.l);return}
+ $("aps").textContent="Loading the OurAirports database (first visit only, about 12 MB)…";
+ try{const ls=(await(await fetch("https://davidmegginson.github.io/ourairports-data/airports.csv")).text()).split("\n"),h=csvLine(ls[0]),[T,N,LA,LO,CC,MU,SS,IA]=["type","name","latitude_deg","longitude_deg","iso_country","municipality","scheduled_service","iata_code"].map(n=>h.indexOf(n)),l=[];
+  for(let i=1;i<ls.length;i++){const x=ls[i];if(!x)continue;const r=x.includes('"')?csvLine(x):x.split(",");const ia=r[IA];if(!ia||ia.length!==3)continue;const ty=r[T];if(ty==="large_airport"||ty==="medium_airport"||(r[SS]==="yes"&&ty!=="closed"&&ty!=="heliport"))l.push([ia,r[MU],r[LA],r[LO],r[N],r[CC]])}
+  if(l.length<500)throw Error("unexpected data");
+  try{localStorage.setItem("ffap",JSON.stringify({t:Date.now(),l}))}catch(e){}ingest(l)}
+ catch(e){$("aps").textContent="Couldn’t load OurAirports ("+e.message+"). Using the built-in list of 33 major airports."}}
+from.value="IAH";to.value="LHR";stats();setRoute();loadAp();
 </script></body></html>
