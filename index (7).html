@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Train Focus</title>
+<style>
+:root{--bg:#f4f1ea;--card:#fffdf8;--ink:#1d2433;--mute:#6b7280;--line:#e4dfd3;--sea:#dce8ee;--land:#c3cfb9;--acc:#c2410c;--acc2:#1f4e79;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141d;--card:#171e2b;--ink:#e8ecf3;--mute:#93a0b4;--line:#27314a;--sea:#12223a;--land:#2f4b48;--acc:#ff7a45;--acc2:#7fb2e5}}
+:root[data-theme="dark"]{--bg:#0f141d;--card:#171e2b;--ink:#e8ecf3;--mute:#93a0b4;--line:#27314a;--sea:#12223a;--land:#2f4b48;--acc:#ff7a45;--acc2:#7fb2e5}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 2px}.sub{color:var(--mute);margin:0 0 14px;font-size:14px}a{color:var(--acc2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;width:100%}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:4px}
+#list{max-height:230px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.it{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--line);font-size:14px}.it:last-child{border:0}.it:hover,.it.on{background:var(--bg)}.it.on{border-left:3px solid var(--acc)}
+.it small{display:block;color:var(--mute)}
+svg{width:100%;height:auto;display:block;border-radius:10px;background:var(--sea)}
+.land{fill:var(--land)}.route{fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.done{fill:none;stroke:var(--acc);stroke-width:3;vector-effect:non-scaling-stroke}
+.dot{fill:var(--card);stroke:var(--mute);stroke-width:1;vector-effect:non-scaling-stroke}.dot.p{fill:var(--acc);stroke:var(--acc)}
+.lbl{fill:var(--ink);font-weight:600}.cr{fill:var(--mute)}.tr{fill:var(--acc);stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
+.clock{font:700 clamp(44px,12vw,76px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;margin:8px 0;letter-spacing:-1px}
+.mid{text-align:center;color:var(--mute);font-size:14px}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin:12px 0}.bar i{display:block;height:100%;width:0;background:var(--acc)}
+.btns{display:flex;gap:8px;justify-content:center;margin-top:12px}
+button.b{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 24px;cursor:pointer;background:var(--acc);color:#fff}
+.stats{display:flex;justify-content:space-around;font-size:13px;color:var(--mute);text-align:center}.stats b{display:block;color:var(--ink);font-size:18px}
+#msg{text-align:center;font-weight:600;color:var(--acc2);min-height:22px;margin-top:8px}
+.leaflet-container{background:var(--sea);font:inherit}
+.leaflet-tooltip.lt{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:600;box-shadow:none}.leaflet-tooltip.lt:before{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #lmap .base{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}
+:root[data-theme="dark"] #lmap .base{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+.trm{width:18px;height:18px;border-radius:50%;background:var(--acc);border:3px solid #fff;animation:pl 2s infinite}
+@keyframes pl{0%{box-shadow:0 0 0 0 #c2410c88}70%{box-shadow:0 0 0 14px #c2410c00}100%{box-shadow:0 0 0 0 #c2410c00}}
+.late{color:#e5483a;font-weight:700}.early{color:#16a34a;font-weight:700}
+.pill{display:inline-block;border-radius:99px;padding:1px 8px;font-size:12px;font-weight:600;color:#fff}.rs{background:#16a34a}.rm{background:#d97706}.rl{background:#4b5563}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:5px 12px;font-size:13px;cursor:pointer}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</head><body><main>
+<h1>🚆 Train Focus</h1>
+<p class="sub">Study while a real train travels. Live train data from <a href="https://amtraker.com" target="_blank" rel="noopener">Amtraker</a> (Amtrak, VIA Rail and Brightline), available under the ODC-By license. Not affiliated with Amtrak.</p>
+
+<div class="card">
+ <label>Find a train<input id="q" placeholder="Number, route or city, e.g. 21, Zephyr, Chicago" autocomplete="off"></label>
+ <div id="rf" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><small style="color:var(--mute)">Time to next stop:</small><button class="chip on" data-r="all">All</button><button class="chip" data-r="short">Short (under 30 min)</button><button class="chip" data-r="medium">Medium (30–60 min)</button><button class="chip" data-r="long">Long (1 hr+)</button></div>
+ <div id="list"></div>
+ <p class="sub" id="ls" style="margin:8px 0 0;font-size:12px"></p>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+ <div id="lmap" style="height:min(62vh,440px);display:none"></div>
+ <svg id="map" viewBox="0 0 160 90" role="img" aria-label="Train route map"></svg>
+ <div id="mbtn" style="display:none;gap:8px;padding:8px 10px;border-top:1px solid var(--line)"><button class="chip" id="bFit">Fit route</button><button class="chip" id="bCtr">📍 Follow train</button></div>
+</div>
+
+<div class="card">
+ <div class="mid" id="t1" style="font-weight:600;color:var(--ink)">Pick a train above</div>
+ <div class="mid" id="t2"></div><div class="mid" id="t3"></div><div class="mid" id="t4" style="color:var(--acc)"></div>
+ <label style="margin-top:12px">Focus until<select id="until"><option value="next">Next station</option><option value="final">Final destination</option><option value="25">25 minutes</option><option value="50">50 minutes</option><option value="90">90 minutes</option></select></label>
+ <div class="mid" id="tl" style="margin-top:10px"></div>
+ <div class="clock" id="clock">--:--:--</div>
+ <div class="bar"><i id="fill"></i></div>
+ <div class="btns"><button class="b" id="go">Start focus</button><button class="chip" id="snd"></button></div>
+ <div id="msg"></div>
+</div>
+
+<div class="card stats"><div><b id="ss">0</b>sessions completed</div><div><b id="sm">0h 0m</b>total focus time</div></div>
+<p class="sub" style="text-align:center;font-size:12px">Train data: <a href="https://amtraker.com" target="_blank" rel="noopener">Amtraker</a> (ODC-By). Times shown in each station’s local time.</p>
+</main>
+<script>
+const PROXY="" /* optional: paste your Cloudflare Worker URL here */,API=PROXY||"https://api.amtraker.com/v3",CARTO_KEY="" /* optional: free key from carto.com/basemaps/apikey */;
+const $=id=>document.getElementById(id),R=Math.PI/180,NS="http://www.w3.org/2000/svg";
+const LAND=[[[-168,66],[-156,71],[-125,70],[-95,72],[-80,70],[-62,60],[-55,50],[-67,45],[-76,35],[-81,25],[-83,29],[-90,30],[-97,26],[-97,22],[-94,18],[-88,21],[-87,16],[-83,10],[-78,8],[-86,12],[-95,16],[-105,20],[-110,24],[-115,30],[-117,32],[-124,40],[-125,49],[-135,58],[-150,60],[-165,60]],[[-66,44],[-61,45.5],[-60,46.5],[-64,44]],[[-59,47.5],[-53,47],[-53,51],[-56,51.5]]];
+let TR=[],ST={},T=null,sess=null,err="",pollT=0;
+const ms=s=>{const d=Date.parse(s);return isNaN(d)?null:d};
+const eta=s=>s?(ms(s.arr)??ms(s.schArr)):null;
+const stops=()=>T.stations.filter(s=>!s.bus);
+const lastSt=()=>{const a=stops();return a[a.length-1]};
+const nextSt=()=>{const a=stops();return a.find((s,i)=>i>0&&s.status==="Enroute")||a[a.length-1]};
+const stopsOf=t=>(t.stations||[]).filter(s=>!s.bus);
+const nextOf=t=>{const a=stopsOf(t);return a.find((s,i)=>i>0&&s.status==="Enroute")||a[a.length-1]};
+const dur=m=>{m=Math.max(0,Math.round(m));return m<60?m+" min":Math.floor(m/60)+"h "+String(m%60).padStart(2,"0")+"m"};
+const mn=n=>n+" min"+(n===1?"":"s");
+const rng=m=>m==null?null:m<30?["Short","rs"]:m<60?["Medium","rm"]:["Long","rl"];
+function info(t){const a=stopsOf(t),at=a.find(s=>s.status==="Station"),v=Math.round(+t.velocity||0);
+ if(t.trainState==="Predeparture"){const o=a[0],e=o&&(ms(o.dep)??ms(o.schDep));return{st:"Not yet departed",m:e==null?null:(e-Date.now())/6e4,pre:1}}
+ const e=eta(nextOf(t));return{st:at?"In stop · "+at.name+" · ~"+v+" mph":"Traveling · ~"+v+" mph",m:e==null?null:(e-Date.now())/6e4}}
+let RF="all";
+const fmtT=(t,tz)=>{const o={hour:"numeric",minute:"2-digit"};try{return new Date(t).toLocaleTimeString([],{...o,timeZone:tz||undefined})}catch(e){return new Date(t).toLocaleTimeString([],o)}};
+const fmt=m=>{const s=Math.max(0,Math.ceil(m/1000)),h=Math.floor(s/3600);return h+":"+String(Math.floor(s%3600/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+async function get(p){const r=await fetch(API+p);if(!r.ok)throw Error("HTTP "+r.status);return r.json()}
+async function loadST(){try{const c=JSON.parse(localStorage.getItem("tfst")||"null");if(c&&Date.now()-c.t<6048e5){ST=c.d;return}}catch(e){}
+ const j=await get("/stations");for(const k in j){const s=j[k];if(s&&s.lat!=null)ST[s.code||k]=[s.lat,s.lon]}
+ try{localStorage.setItem("tfst",JSON.stringify({t:Date.now(),d:ST}))}catch(e){}}
+const srt=()=>TR.sort((a,b)=>(a.trainState==="Active"?0:1)-(b.trainState==="Active"?0:1)||(a.routeName||"").localeCompare(b.routeName||""));
+async function refreshList(){try{TR=Object.values(await get("/trains")).flat();srt();list()}catch(e){}}
+async function init(){$("ls").textContent="Loading trains…";
+ try{await Promise.all([loadST(),get("/trains").then(j=>{TR=Object.values(j).flat()})]);
+  srt();list()}
+ catch(e){$("ls").textContent="Couldn’t load Amtraker data ("+e.message+"). If your browser is blocking it, or Amtraker rejects the request, set up the proxy (see worker.js)."}}
+function list(){const q=$("q").value.trim().toLowerCase(),box=$("list"),sc=box.scrollTop;box.replaceChildren();
+ const m=TR.filter(t=>{if(q&&!((t.trainNum||"")+" "+t.routeName+" "+t.origName+" "+t.destName+" "+t.provider).toLowerCase().includes(q))return false;
+  if(RF==="all")return true;const r=rng(info(t).m);return r&&r[0].toLowerCase()===RF});
+ for(const t of m.slice(0,60)){const i=info(t),r=rng(i.m),d=document.createElement("div");d.className="it"+(T&&T.trainID===t.trainID?" on":"");
+  {const pv=t.providerShort||t.provider;d.textContent=t.trainNum+" · "+t.routeName+(pv?" ("+pv+")":"")}
+  const s=document.createElement("small");s.textContent=t.origName+" → "+t.destName;d.append(s);
+  const l=document.createElement("small");
+  if(r){const p=document.createElement("span");p.className="pill "+r[1];p.textContent=i.pre?"Departs in "+dur(i.m):r[0]+" · "+dur(i.m)+" to next stop";l.append(p)}
+  l.append(document.createTextNode(" "+i.st));d.append(l);d.onclick=()=>pick(t);box.append(d)}
+ box.scrollTop=sc;if(TR.length)$("ls").textContent=m.length+" of "+TR.length+" trains"+(m.length>60?" (showing 60, type to narrow)":"")}
+function pick(t){if(sess){$("msg").textContent="End your session before switching trains.";return}
+ T=t;err="";$("msg").textContent="";seen=new Set(arrived());setFix();clearInterval(pollT);pollT=setInterval(poll,60000);list();draw();render()}
+async function poll(){if(!T)return;
+ try{const a=Object.values(await get("/trains/"+encodeURIComponent(T.trainID))).flat()[0];if(a){T=a;err="";setFix();arrivals()}else err="This train is no longer listed (it may have finished its run)."}
+ catch(e){err="Update failed ("+e.message+"). Showing the last known data."}draw();render()}
+let TM=null,FX=null,lastF=0,seen=new Set(),AC=null,snd=(()=>{try{return localStorage.getItem("tfsnd")!=="0"}catch(e){return true}})();
+const hav=(a,b,c,e)=>{const x=Math.sin((c-a)*R/2)**2+Math.cos(a*R)*Math.cos(c*R)*Math.sin((e-b)*R/2)**2;return 12742*Math.asin(Math.sqrt(x))};
+const brg=(a,b,c,e)=>{const y=Math.sin((e-b)*R)*Math.cos(c*R),x=Math.cos(a*R)*Math.sin(c*R)-Math.sin(a*R)*Math.cos(c*R)*Math.cos((e-b)*R);return Math.atan2(y,x)/R};
+const arrived=()=>stops().filter(s=>s.status==="Station"||s.status==="Departed").map(s=>s.code);
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==="suspended")AC.resume();return AC}
+function bell(t0,f){const a=AC;[[f,.45],[f*2.76,.18],[f*5.4,.07]].forEach(([fr,g])=>{const o=a.createOscillator(),n=a.createGain();o.type="sine";o.frequency.value=fr;n.gain.setValueAtTime(0,t0);n.gain.linearRampToValueAtTime(g,t0+.01);n.gain.exponentialRampToValueAtTime(.001,t0+2.2);o.connect(n);n.connect(a.destination);o.start(t0);o.stop(t0+2.3)})}
+function ring(n){if(!snd||!ac())return;for(let i=0;i<n;i++)bell(AC.currentTime+i*.9,i%2?660:880)}
+function arrivals(){const now=arrived(),nw=now.filter(c=>!seen.has(c));seen=new Set(now);if(!nw.length)return;
+ const nm=stops().filter(s=>nw.includes(s.code)&&s.status==="Station").map(s=>s.name);
+ if(nm.length){$("msg").textContent="🔔 Arrived at "+nm.join(", ");if(!(sess&&nw.includes(sess.code)))ring(1)}}
+function setFix(){if(T.lat==null)return;const now=Date.now(),p=FX&&FX.id===T.trainID?FX:null;
+ if(!p){FX={id:T.trainID,la:T.lat,lo:T.lon,t:now,dir:null,off:[0,0],ot:now,dla:T.lat,dlo:T.lon}}
+ else if(T.lat!==p.la||T.lon!==p.lo){const dir=hav(p.la,p.lo,T.lat,T.lon)>.05?brg(p.la,p.lo,T.lat,T.lon):p.dir;
+  FX={id:T.trainID,la:T.lat,lo:T.lon,t:now,dir,off:[p.dla-T.lat,p.dlo-T.lon],ot:now,dla:p.dla,dlo:p.dlo}}}
+function frame(){requestAnimationFrame(frame);const now=Date.now();if(!M||!TM||!FX||!T||T.lat==null||now-lastF<60)return;lastF=now;
+ let la=FX.la,lo=FX.lo;const v=(+T.velocity||0)*1.609344/3.6e6;
+ if(T.trainState==="Active"&&v>0.0000008&&!stops().some(s=>s.status==="Station")){let d=v*Math.min(now-FX.t,24e4),b=FX.dir;const nx=nextSt(),np=nx&&ST[nx.code];
+  if(np){d=Math.min(d,hav(FX.la,FX.lo,np[0],np[1]));if(b==null)b=brg(FX.la,FX.lo,np[0],np[1])}
+  if(b!=null){la+=d*Math.cos(b*R)/111.32;lo+=d*Math.sin(b*R)/(111.32*Math.cos(la*R))}}
+ const k=Math.exp(-(now-FX.ot)/2500);la+=FX.off[0]*k;lo+=FX.off[1]*k;FX.dla=la;FX.dlo=lo;TM.setLatLng([la,lo]);if(FOLLOW)M.panTo([la,lo],{animate:false})}
+function mk(t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt)e.textContent=txt;$("map").append(e);return e}
+let M=null,ML=null,fitFor=null,lastPts=[];
+function ensureMap(){if(M)return true;if(!window.L)return false;
+ $("lmap").style.display="block";$("map").style.display="none";$("mbtn").style.display="flex";
+ M=L.map("lmap").setView([39,-98],4);
+ const src=CARTO_KEY?["https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key="+CARTO_KEY,{subdomains:"abcd",maxZoom:20},"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> © <a href='https://carto.com/attributions'>CARTO</a>"]:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19},"Tiles © Esri"],
+ base=L.tileLayer(src[0],{...src[1],className:"base",attribution:src[2]}).addTo(M);
+ let ef=0;base.on("tileerror",()=>{if(++ef===4){M.removeLayer(base);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,className:"base",attribution:"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}).addTo(M).bringToBack()}});
+ if(location.protocol==="file:"){const n=document.createElement("small");n.style.cssText="color:var(--mute);align-self:center";n.textContent="Opened from a file: some map tiles may be blocked. Host it on GitHub Pages.";$("mbtn").append(n)}
+ L.tileLayer("https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png",{maxZoom:19,subdomains:"abc",opacity:.85,attribution:"Rail: © <a href='https://www.openrailwaymap.org/'>OpenRailwayMap</a>"}).addTo(M);
+ M.attributionControl.addAttribution("Train data: <a href='https://amtraker.com'>Amtraker</a>");
+ ML=L.layerGroup().addTo(M);return true}
+function fit(){if(M&&lastPts.length)M.fitBounds(L.latLngBounds(lastPts),{padding:[30,30],maxZoom:11})}
+function drawL(){ML.clearLayers();TM=null;if(!T)return;
+ const cv=v=>getComputedStyle(document.body).getPropertyValue(v).trim(),P=stops().filter(s=>ST[s.code]).map(s=>({s,p:ST[s.code]})),
+ nx=nextSt(),pass=P.filter(x=>x.s.status==="Departed").map(x=>x.p),tp=T.lat!=null?[T.lat,T.lon]:null;
+ lastPts=P.map(x=>x.p).concat(tp?[tp]:[]);if(!lastPts.length)return;
+ L.polyline(P.map(x=>x.p),{color:cv("--mute"),weight:3,dashArray:"6 6"}).addTo(ML);
+ if(pass.length&&tp)L.polyline(pass.concat([tp]),{color:cv("--acc"),weight:5}).addTo(ML);
+ P.forEach((x,i)=>{const key=i===0||i===P.length-1||x.s.code===(nx&&nx.code);
+  L.circleMarker(x.p,{radius:key?6:4,color:cv("--acc"),weight:2,fillColor:x.s.status==="Departed"?cv("--acc"):cv("--card"),fillOpacity:1}).addTo(ML).bindTooltip(x.s.name,{className:"lt",direction:"top",permanent:key})});
+ if(tp){TM=L.marker(FX&&FX.id===T.trainID?[FX.dla,FX.dlo]:tp,{icon:L.divIcon({className:"",html:'<div class="trm"></div>',iconSize:[18,18]}),zIndexOffset:1000}).addTo(ML);TM.bindTooltip("#"+T.trainNum,{permanent:true,direction:"right",offset:[12,0],className:"lt"})}
+ if(fitFor!==T.trainID){fitFor=T.trainID;M.invalidateSize();if(FOLLOW)setFollow(true);else fit()}}
+function draw(){if(ensureMap())drawL();else drawSvg()}
+let FOLLOW=(()=>{try{return localStorage.getItem("tffollow")==="1"}catch(e){return false}})();
+function setFollow(v){FOLLOW=v;try{localStorage.setItem("tffollow",v?"1":"0")}catch(e){}const b=$("bCtr");b.classList.toggle("on",v);b.textContent=v?"📍 Following train":"📍 Follow train";
+ if(M){M.dragging[v?"disable":"enable"]();if(v&&T&&FX&&FX.id===T.trainID)M.setView([FX.dla,FX.dlo],Math.max(M.getZoom(),9),{animate:false})}}
+$("bFit").onclick=()=>{setFollow(false);fit()};$("bCtr").onclick=()=>setFollow(!FOLLOW);
+function drawSvg(){const svg=$("map");svg.replaceChildren();if(!T)return;
+ const P=stops().filter(s=>ST[s.code]).map(s=>({s,la:ST[s.code][0],lo:ST[s.code][1]})),pts=P.map(p=>[p.la,p.lo]);
+ if(T.lat!=null)pts.push([T.lat,T.lon]);if(!pts.length)return;
+ const la0=Math.min(...pts.map(p=>p[0])),la1=Math.max(...pts.map(p=>p[0])),lo0=Math.min(...pts.map(p=>p[1])),lo1=Math.max(...pts.map(p=>p[1])),k=Math.cos((la0+la1)/2*R);
+ let w=Math.max((lo1-lo0)*k*1.25,4),h=Math.max((la1-la0)*1.25,3);if(w/h>2.2)h=w/2.2;if(w/h<1.2)w=h*1.2;
+ const cx=(lo0+lo1)/2*k,cy=-(la0+la1)/2,X=lo=>(lo*k).toFixed(3),Y=la=>(-la).toFixed(3),u=h/45;
+ svg.setAttribute("viewBox",[cx-w/2,cy-h/2,w,h].join(" "));
+ LAND.forEach(p=>mk("path",{class:"land",d:p.map((q,i)=>(i?"L":"M")+X(q[0])+" "+Y(q[1])).join("")+"Z"}));
+ const pd=a=>a.map((p,i)=>(i?"L":"M")+X(p.lo)+" "+Y(p.la)).join(""),pass=P.filter(p=>p.s.status==="Departed");
+ mk("path",{class:"route",d:pd(P)});
+ const dn=pass.concat(T.lat!=null?[{lo:T.lon,la:T.lat}]:[]);if(dn.length>1)mk("path",{class:"done",d:pd(dn)});
+ const nx=nextSt(),show=new Set([P[0]&&P[0].s.code,P.length&&P[P.length-1].s.code,nx&&nx.code]);
+ P.forEach(p=>{mk("circle",{class:"dot"+(p.s.status==="Departed"?" p":""),cx:X(p.lo),cy:Y(p.la),r:u*.5});
+  if(show.has(p.s.code))mk("text",{class:"lbl",x:+X(p.lo)+u*1.1,y:+Y(p.la)-u*.8,"font-size":u*1.7},p.s.name)});
+ if(T.lat!=null){mk("circle",{class:"tr",cx:X(T.lon),cy:Y(T.lat),r:u*1.2});mk("text",{class:"lbl",x:+X(T.lon)+u*1.6,y:+Y(T.lat)+u*.6,"font-size":u*1.8},"#"+T.trainNum)}
+ mk("text",{class:"cr",x:cx+w/2-u,y:cy+h/2-u,"text-anchor":"end","font-size":u*1.4},"Data: Amtraker")}
+function target(){if(!T)return null;const m=sess?sess.mode:$("until").value;
+ if(m==="next"||m==="final"){const s=sess?stops().find(x=>x.code===sess.code):(m==="next"?nextSt():lastSt());if(!s)return null;const e=eta(s);
+  return{s,label:s.name,rem:e==null?null:e-Date.now(),arrived:s.status==="Station"||s.status==="Departed"}}
+ return{label:m+" min",rem:sess?sess.end-Date.now():m*6e4,arrived:false}}
+function render(){const tg=target();
+ if(!T){$("clock").textContent="--:--:--";return}
+ $("t1").textContent=T.routeName+" "+T.trainNum+" · "+T.origName+" → "+T.destName;
+ const n=nextSt(),ne=eta(n),d=lastSt(),de=eta(d),ds=ms(d.schArr),dl=de!=null&&ds!=null?Math.round((de-ds)/6e4):null;
+ $("t2").textContent=(T.trainState==="Predeparture"?"Not yet departed":Math.round(T.velocity||0)+" mph")+" · Next: "+n.name+(ne?" at "+fmtT(ne,n.tz):"");
+ const t3=$("t3");t3.replaceChildren(document.createTextNode("Final stop"+(de?" ETA "+fmtT(de,d.tz):"")+(dl==null?"":" · ")));
+ if(dl!=null){const sp=document.createElement("span");sp.className=dl>0?"late":dl<0?"early":"";sp.textContent=dl>0?"+"+mn(dl):dl<0?"−"+mn(-dl):"on time";t3.append(sp)}
+ const u=ms(T.updatedAt)??ms(T.lastValTS);$("t4").textContent=[err||T.statusMsg||"",u&&!err?"Updated "+Math.max(0,Math.round((Date.now()-u)/6e4))+" min ago":""].filter(Boolean).join(" · ");
+ if(!tg||tg.rem==null){$("clock").textContent="--:--:--";$("tl").textContent="No arrival time available for this stop";return}
+ $("tl").textContent=(sess?"Focusing until ":"Until ")+tg.label;$("clock").textContent=fmt(tg.rem);
+ $("fill").style.width=sess?Math.min(100,Math.max(0,(1-tg.rem/sess.total)*100))+"%":"0%";
+ if(sess&&(tg.rem<=0||tg.arrived))finish(true)}
+function rec(done){const m=Math.round((Date.now()-sess.t0)/6e4);let s={};try{s=JSON.parse(localStorage.getItem("tf")||"{}")}catch(e){}
+ s.m=(s.m||0)+m;if(done)s.s=(s.s||0)+1;try{localStorage.setItem("tf",JSON.stringify(s))}catch(e){}return m}
+function finish(done){if(done)ring(3);const lb=sess.label,m=rec(done);sess=null;$("go").textContent="Start focus";$("fill").style.width=done?"100%":"0%";
+ $("msg").textContent=done?"Reached "+lb+". Nice work: "+m+" focused minutes.":"Session ended after "+m+" minutes.";stats()}
+$("go").onclick=()=>{if(sess){finish(false);return}if(!T){$("msg").textContent="Pick a train first.";return}
+ const tg=target();if(!tg||tg.rem==null||tg.rem<=0){$("msg").textContent="That stop has no upcoming arrival time. Try a different target.";return}
+ const m=$("until").value;sess={mode:m,code:tg.s?tg.s.code:null,end:isNaN(+m)?0:Date.now()+m*6e4,t0:Date.now(),total:tg.rem,label:tg.label};
+ $("msg").textContent=$("msg").textContent&&"";$("go").textContent="End session";render()};
+function stats(){let s={};try{s=JSON.parse(localStorage.getItem("tf")||"{}")}catch(e){}$("ss").textContent=s.s||0;const m=s.m||0;$("sm").textContent=Math.floor(m/60)+"h "+m%60+"m"}
+$("q").oninput=list;$("until").onchange=render;
+const sb=()=>{$("snd").textContent=snd?"🔔 Sound on":"🔕 Sound off"};sb();
+$("snd").onclick=()=>{snd=!snd;try{localStorage.setItem("tfsnd",snd?"1":"0")}catch(e){}sb();if(snd)ring(1)};
+document.addEventListener("click",()=>{if(snd)ac()});
+$("rf").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;RF=r;[...$("rf").children].forEach(b=>b.classList.toggle("on",b.dataset&&b.dataset.r===r));list()};
+setInterval(list,30000);setInterval(refreshList,300000);
+setInterval(render,1000);stats();draw();setFollow(FOLLOW);init();requestAnimationFrame(frame);
+</script></body></html>
