@@ -16,7 +16,7 @@ label{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:4p
 #list{max-height:230px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
 .it{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--line);font-size:14px}.it:last-child{border:0}.it:hover,.it.on{background:var(--bg)}.it.on{border-left:3px solid var(--acc)}
 .it small{display:block;color:var(--mute)}
-svg{width:100%;height:auto;display:block;border-radius:10px;background:var(--sea)}
+svg#map{width:100%;height:auto;display:block;border-radius:10px;background:var(--sea)}
 .land{fill:var(--land)}.route{fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
 .done{fill:none;stroke:var(--acc);stroke-width:3;vector-effect:non-scaling-stroke}
 .dot{fill:var(--card);stroke:var(--mute);stroke-width:1;vector-effect:non-scaling-stroke}.dot.p{fill:var(--acc);stroke:var(--acc)}
@@ -32,8 +32,7 @@ button.b{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 2
 .leaflet-tooltip.lt{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:600;box-shadow:none}.leaflet-tooltip.lt:before{display:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #lmap .base{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}}
 :root[data-theme="dark"] #lmap .base{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
-.trm{width:18px;height:18px;border-radius:50%;background:var(--acc);border:3px solid #fff;animation:pl 2s infinite}
-@keyframes pl{0%{box-shadow:0 0 0 0 #c2410c88}70%{box-shadow:0 0 0 14px #c2410c00}100%{box-shadow:0 0 0 0 #c2410c00}}
+.trm{width:30px;height:30px;filter:drop-shadow(0 1px 3px #0007)}.arw{width:30px;height:30px;display:block;transition:transform .45s linear}
 .late{color:#e5483a;font-weight:700}.early{color:#16a34a;font-weight:700}
 .pill{display:inline-block;border-radius:99px;padding:1px 8px;font-size:12px;font-weight:600;color:#fff}.rs{background:#16a34a}.rm{background:#d97706}.rl{background:#4b5563}
 .chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -55,7 +54,7 @@ button.b{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 2
 <div class="card" style="padding:0;overflow:hidden">
  <div id="lmap" style="height:min(62vh,440px);display:none"></div>
  <svg id="map" viewBox="0 0 160 90" role="img" aria-label="Train route map"></svg>
- <div id="mbtn" style="display:none;flex-wrap:wrap;gap:8px;padding:8px 10px;border-top:1px solid var(--line)"><button class="chip" id="bFit">Fit route</button><button class="chip" id="bCtr">📍 Follow train</button><small id="rs" style="color:var(--mute);align-self:center"></small></div>
+ <div id="mbtn" style="display:none;flex-wrap:wrap;gap:8px;padding:8px 10px;border-top:1px solid var(--line)"><button class="chip" id="bFit">Fit route</button><button class="chip" id="bCtr">📍 Follow train</button><button class="chip" id="bSat">🛰 Satellite</button><small id="rs" style="color:var(--mute);align-self:center"></small></div>
 </div>
 
 <div class="card">
@@ -118,7 +117,7 @@ function pick(t){if(sess){$("msg").textContent="End your session before switchin
 async function poll(){if(!T)return;
  try{const a=Object.values(await get("/trains/"+encodeURIComponent(T.trainID))).flat()[0];if(a){T=a;err="";setFix();arrivals()}else err="This train is no longer listed (it may have finished its run)."}
  catch(e){err="Update failed ("+e.message+"). Showing the last known data."}draw();render()}
-let TM=null,FX=null,lastF=0,seen=new Set(),AC=null,snd=(()=>{try{return localStorage.getItem("tfsnd")!=="0"}catch(e){return true}})();
+let TM=null,AR=0,FX=null,lastF=0,seen=new Set(),AC=null,snd=(()=>{try{return localStorage.getItem("tfsnd")!=="0"}catch(e){return true}})();
 const hav=(a,b,c,e)=>{const x=Math.sin((c-a)*R/2)**2+Math.cos(a*R)*Math.cos(c*R)*Math.sin((e-b)*R/2)**2;return 12742*Math.asin(Math.sqrt(x))};
 const brg=(a,b,c,e)=>{const y=Math.sin((e-b)*R)*Math.cos(c*R),x=Math.cos(a*R)*Math.sin(c*R)-Math.sin(a*R)*Math.cos(c*R)*Math.cos((e-b)*R);return Math.atan2(y,x)/R};
 const arrived=()=>stops().filter(s=>s.status==="Station"||s.status==="Departed").map(s=>s.code);
@@ -191,12 +190,12 @@ function graphPath(hd,np){const sn=snap(FX.la,FX.lo);if(!sn)return null;
   if(!bk)break;prev=cur;cur=bk}
  return P.length>1?{p:P,c:C}:null}
 function frame(){requestAnimationFrame(frame);const now=Date.now();if(!M||!TM||!FX||!T||T.lat==null||now-lastF<60)return;lastF=now;
- let la=FX.la,lo=FX.lo;const v=(+T.velocity||0)*1.609344/3.6e6;
+ let la=FX.la,lo=FX.lo,hg=FX.dir;const v=(+T.velocity||0)*1.609344/3.6e6;
  if(T.trainState==="Active"&&v>0.0000008&&!stops().some(s=>s.status==="Station")){let d=v*Math.min(now-FX.t,24e4),b=FX.dir;const nx=nextSt(),np=nx&&ST[nx.code];
   if(np){d=Math.min(d,hav(FX.la,FX.lo,np[0],np[1])*(FX.path?1.15:1));if(b==null)b=brg(FX.la,FX.lo,np[0],np[1])}
-  if(FX.path){[la,lo]=pointAt(FX.path,d)}else if(b!=null){la+=d*Math.cos(b*R)/KY;lo+=d*Math.sin(b*R)/(KY*Math.cos(la*R))}}
- else if(FX.path){[la,lo]=FX.path.p[0]}
- const k=Math.exp(-(now-FX.ot)/2500);la+=FX.off[0]*k;lo+=FX.off[1]*k;FX.dla=la;FX.dlo=lo;TM.setLatLng([la,lo]);if(FOLLOW)M.panTo([la,lo],{animate:false})}
+  if(FX.path){[la,lo]=pointAt(FX.path,d);const q=pointAt(FX.path,d+.15);if(hav(la,lo,q[0],q[1])>.02)hg=brg(la,lo,q[0],q[1])}else if(b!=null){hg=b;la+=d*Math.cos(b*R)/KY;lo+=d*Math.sin(b*R)/(KY*Math.cos(la*R))}}
+ else if(FX.path){[la,lo]=FX.path.p[0];const q=pointAt(FX.path,.15);if(hav(la,lo,q[0],q[1])>.02)hg=brg(la,lo,q[0],q[1])}
+ const k=Math.exp(-(now-FX.ot)/2500);la+=FX.off[0]*k;lo+=FX.off[1]*k;FX.dla=la;FX.dlo=lo;TM.setLatLng([la,lo]);if(hg!=null){AR+=((hg-AR)%360+540)%360-180;const e=TM.getElement(),sv=e&&e.querySelector(".arw");if(sv)sv.style.transform="rotate("+AR.toFixed(1)+"deg)"}if(FOLLOW)M.panTo([la,lo],{animate:false})}
 function mk(t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt)e.textContent=txt;$("map").append(e);return e}
 let M=null,ML=null,fitFor=null,lastPts=[];
 function ensureMap(){if(M)return true;if(!window.L)return false;
@@ -204,9 +203,9 @@ function ensureMap(){if(M)return true;if(!window.L)return false;
  M=L.map("lmap").setView([39,-98],4);
  const src=CARTO_KEY?["https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key="+CARTO_KEY,{subdomains:"abcd",maxZoom:20},"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> © <a href='https://carto.com/attributions'>CARTO</a>"]:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19},"Tiles © Esri"],
  base=L.tileLayer(src[0],{...src[1],className:"base",attribution:src[2]}).addTo(M);
- let ef=0;base.on("tileerror",()=>{if(++ef===4){M.removeLayer(base);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,className:"base",attribution:"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}).addTo(M).bringToBack()}});
+ BASEL=base;let ef=0;base.on("tileerror",()=>{if(++ef===4&&!SATON){M.removeLayer(base);BASEL=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,className:"base",attribution:"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}).addTo(M).bringToBack()}});
  if(location.protocol==="file:"){const n=document.createElement("small");n.style.cssText="color:var(--mute);align-self:center";n.textContent="Opened from a file: some map tiles may be blocked. Host it on GitHub Pages.";$("mbtn").append(n)}
- L.tileLayer("https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png",{maxZoom:19,opacity:.85,attribution:"Rail: © <a href='https://www.openrailwaymap.org/'>OpenRailwayMap</a>"}).addTo(M);
+ L.tileLayer("https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png",{maxZoom:19,opacity:.85,zIndex:3,attribution:"Rail: © <a href='https://www.openrailwaymap.org/'>OpenRailwayMap</a>"}).addTo(M);
  M.attributionControl.addAttribution("Train data: <a href='https://amtraker.com'>Amtraker</a> · Routes: FRA/BTS (public domain) · Track: © <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors");
  ML=L.layerGroup().addTo(M);return true}
 function fit(){if(M&&lastPts.length)M.fitBounds(L.latLngBounds(lastPts),{padding:[30,30],maxZoom:11})}
@@ -214,16 +213,22 @@ function drawL(){ML.clearLayers();TM=null;if(!T)return;
  const cv=v=>getComputedStyle(document.body).getPropertyValue(v).trim(),P=stops().filter(s=>ST[s.code]).map(s=>({s,p:ST[s.code]})),
  nx=nextSt(),pass=P.filter(x=>x.s.status==="Departed").map(x=>x.p),tp=T.lat!=null?[T.lat,T.lon]:null;
  lastPts=P.map(x=>x.p).concat(tp?[tp]:[]);if(!lastPts.length)return;
- L.polyline(P.map(x=>x.p),{color:cv("--mute"),weight:3,dashArray:"6 6"}).addTo(ML);
+ L.polyline(P.map(x=>x.p),{color:SATON?"#fff":cv("--mute"),weight:3,dashArray:"6 6"}).addTo(ML);
  if(pass.length&&tp)L.polyline(pass.concat([tp]),{color:cv("--acc"),weight:5}).addTo(ML);
  P.forEach((x,i)=>{const key=i===0||i===P.length-1||x.s.code===(nx&&nx.code);
   L.circleMarker(x.p,{radius:key?6:4,color:cv("--acc"),weight:2,fillColor:x.s.status==="Departed"?cv("--acc"):cv("--card"),fillOpacity:1}).addTo(ML).bindTooltip(x.s.name,{className:"lt",direction:"top",permanent:key})});
- if(tp){TM=L.marker(FX&&FX.id===T.trainID?[FX.dla,FX.dlo]:tp,{icon:L.divIcon({className:"",html:'<div class="trm"></div>',iconSize:[18,18]}),zIndexOffset:1000}).addTo(ML);TM.bindTooltip("#"+T.trainNum,{permanent:true,direction:"right",offset:[12,0],className:"lt"})}
+ if(tp){TM=L.marker(FX&&FX.id===T.trainID?[FX.dla,FX.dlo]:tp,{icon:L.divIcon({className:"",html:'<div class="trm"><svg class="arw" viewBox="0 0 24 24" style="transform:rotate('+AR+'deg)"><path d="M12 1.5 20.5 22 12 17 3.5 22Z" fill="#c2410c" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></div>',iconSize:[30,30]}),zIndexOffset:1000}).addTo(ML);TM.bindTooltip("#"+T.trainNum,{permanent:true,direction:"right",offset:[18,0],className:"lt"})}
  if(fitFor!==T.trainID){fitFor=T.trainID;M.invalidateSize();if(FOLLOW)setFollow(true);else fit()}}
 function draw(){if(ensureMap())drawL();else drawSvg()}
 let FOLLOW=(()=>{try{return localStorage.getItem("tffollow")==="1"}catch(e){return false}})();
 function setFollow(v){FOLLOW=v;try{localStorage.setItem("tffollow",v?"1":"0")}catch(e){}const b=$("bCtr");b.classList.toggle("on",v);b.textContent=v?"📍 Following train":"📍 Follow train";
  if(M){M.dragging[v?"disable":"enable"]();if(v&&T&&FX&&FX.id===T.trainID)M.setView([FX.dla,FX.dlo],Math.max(M.getZoom(),9),{animate:false})}}
+let SATON=(()=>{try{return localStorage.getItem("tfsat")==="1"}catch(e){return false}})(),BASEL=null,SATL=null;
+function setSat(v){SATON=v;try{localStorage.setItem("tfsat",v?"1":"0")}catch(e){}const b=$("bSat");b.classList.toggle("on",v);b.textContent=v?"🛰 Satellite on":"🛰 Satellite";if(!M)return;
+ if(!SATL)SATL=L.layerGroup([L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,zIndex:1,attribution:"Imagery © Esri, Maxar, Earthstar Geographics"}),L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,zIndex:2})]);
+ if(v){if(BASEL)M.removeLayer(BASEL);SATL.addTo(M)}else{M.removeLayer(SATL);if(BASEL)BASEL.addTo(M)}
+ if(T)draw()}
+$("bSat").onclick=()=>setSat(!SATON);
 $("bFit").onclick=()=>{setFollow(false);fit()};$("bCtr").onclick=()=>setFollow(!FOLLOW);
 function drawSvg(){const svg=$("map");svg.replaceChildren();if(!T)return;
  const P=stops().filter(s=>ST[s.code]).map(s=>({s,la:ST[s.code][0],lo:ST[s.code][1]})),pts=P.map(p=>[p.la,p.lo]);
@@ -272,5 +277,5 @@ $("snd").onclick=()=>{snd=!snd;try{localStorage.setItem("tfsnd",snd?"1":"0")}cat
 document.addEventListener("click",()=>{if(snd)ac()});
 $("rf").onclick=e=>{const r=e.target.dataset&&e.target.dataset.r;if(!r)return;RF=r;[...$("rf").children].forEach(b=>b.classList.toggle("on",b.dataset&&b.dataset.r===r));list()};
 setInterval(list,30000);setInterval(refreshList,300000);
-setInterval(render,1000);stats();draw();setFollow(FOLLOW);init();requestAnimationFrame(frame);
+setInterval(render,1000);stats();draw();setFollow(FOLLOW);setSat(SATON);init();requestAnimationFrame(frame);
 </script></body></html>
